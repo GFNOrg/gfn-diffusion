@@ -4,7 +4,7 @@
 
 <details>
 <summary>
-If you find this paper or code useful, please consider citing our paper (expand for BibTeX).
+If you find this code useful in your work, please consider citing our paper (expand for BibTeX).
 </summary>
 
 ```bibtex
