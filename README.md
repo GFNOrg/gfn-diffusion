@@ -4,10 +4,9 @@ Official repository for the paper:
 
 [On diffusion models for amortized inference: Benchmarking and improving stochastic control and sampling](https://arxiv.org/abs/2402.05098)
 
+This repository is divided into two parts, regarding sampling from energies experiments (unconditional sampling) and the VAE experiment (conditional sampling).
 
-This repository is divided into two parts, regarding sampling from energies experiments (unconditional GFNs) and the VAE experiment (conditional GFNs).
-
-## Sampling from unknown energies
+## Sampling from unconditional energies
 
 Firstly, please go to **energy_sampling** directory:
 
@@ -15,12 +14,12 @@ Firstly, please go to **energy_sampling** directory:
 cd energy_sampling
 ```
 
-In order to run the experiment, you should choose one of the following, implemented energy functions:
+In order to run the experiment, you should choose one of the following implemented energy functions:
 
 - **25gmm**
 - **hard_funnel**
 - **many_well**
-- additionally, you can also select **9gmm** or **easy_funnel**
+- additionally, you can also select **9gmm** or **easy_funnel** (with lower variance of the first component, as in [Zhang & Chen, 2021]).
 
 ### Exemplary commands to run experiments
 Below are commands to reproduce some of the results on **Manywell** with PIS and GFlowNet models as an
