@@ -155,7 +155,7 @@ python train.py
 
 This code borrows from implementations of algorithms from past work, including [Zhang & Chen, 2022](https://arxiv.org/abs/2111.15141), [Lahlou et al., 2023](https://arxiv.org/abs/2301.12594), [Richter et al., 2023](https://arxiv.org/abs/2307.01198), [Zhang et al., 2024](https://arxiv.org/abs/2310.02679). We thank the authors of these papers for making their code available.
 
-If you find this code useful in your work, please consider citing our paper (expand for BibTeX).
+If you find this code useful in your work, please consider citing our paper:
 
 ```bibtex
 @article{sendera2024diffusion,
