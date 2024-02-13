@@ -56,6 +56,15 @@ python train.py
 --partial_energy --conditional_flow_model
 ```
 
+#### GFlowNet FL-SubTB + LP:
+```
+python train.py 
+--t_scale 1. --energy many_well --pis_architectures --zero_init --clipping
+--mode_fwd subtb --lr_policy 1e-3 --lr_flow 1e-2 
+--partial_energy --conditional_flow_model
+--langevin --epochs 10000
+```
+
 #### GFlowNet TB + Expl. + LS:
 ```
 python train.py
