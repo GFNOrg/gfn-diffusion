@@ -132,8 +132,8 @@ class GFN(nn.Module):
 
             logf[:, i] = flow
             if self.partial_energy:
-                ref_log_var = self.t_scale * max(1, i) * self.dt
-                log_p_ref = -0.5 * (logtwopi + np.log(ref_log_var) + np.exp(-ref_log_var) * (s ** 2)).sum(1)
+                ref_log_var = np.log(self.t_scale * max(1, i) * self.dt)
+                log_p_ref = -0.5 * (logtwopi + ref_log_var + np.exp(-ref_log_var) * (s ** 2)).sum(1)
                 logf[:, i] += (1 - i * self.dt) * log_p_ref + i * self.dt * log_r(s, condition)
 
             if exploration_std is None:
@@ -211,8 +211,8 @@ class GFN(nn.Module):
 
             logf[:, self.trajectory_length - i - 1] = flow
             if self.partial_energy:
-                ref_log_var = self.t_scale * max(1, self.trajectory_length - i - 1) * self.dt
-                log_p_ref = -0.5 * (logtwopi + np.log(ref_log_var) + np.exp(-ref_log_var) * (s ** 2)).sum(1)
+                ref_log_var = np.log(self.t_scale * max(1, self.trajectory_length - i - 1) * self.dt)
+                log_p_ref = -0.5 * (logtwopi + ref_log_var + np.exp(-ref_log_var) * (s ** 2)).sum(1)
                 logf[:, self.trajectory_length - i - 1] += (i + 1) * self.dt * log_p_ref + (
                         self.trajectory_length - i - 1) * self.dt * log_r(s, condition)
 
