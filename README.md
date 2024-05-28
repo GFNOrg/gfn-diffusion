@@ -2,7 +2,7 @@
 
 Official repository for the paper:
 
-[On diffusion models for amortized inference: Benchmarking and improving stochastic control and sampling](https://arxiv.org/abs/2402.05098)
+[Improved off-policy training of diffusion samplers](https://arxiv.org/abs/2402.05098)
 
 This repository is divided into two parts, regarding sampling from energies experiments (unconditional sampling) and the VAE experiment (conditional sampling).
 
@@ -158,8 +158,8 @@ This code borrows from implementations of algorithms from past work, including [
 If you find this code useful in your work, please consider citing our paper:
 
 ```bibtex
-@article{sendera2024diffusion,
-    title={On diffusion models for amortized inference: Benchmarking and improving stochastic control and sampling},
+@article{sendera2024improved,
+    title={Improved off-policy training of diffusion samplers},
     author={Sendera, Marcin and Kim, Minsu and Mittal, Sarthak and Lemos, Pablo and Scimeca, Luca and {Rector-Brooks}, Jarrid and Adam, Alexandre and Bengio, Yoshua and Malkin, Nikolay},
     year={2024},
     journal={arXiv preprint arXiv:2402.05098}
