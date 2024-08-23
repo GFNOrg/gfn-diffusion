@@ -113,6 +113,11 @@ def get_exploration_std(iter, exploratory, exploration_factor=0.1, exploration_w
 def uniform_discretizer(bsz, trajectory_length):
     return torch.linspace(0, 1, trajectory_length + 1).repeat(bsz, 1)
 
+def random_discretizer(bsz, trajectory_length, max_ratio):
+    x = (torch.rand(bsz, trajectory_length) * (max_ratio - 1) + 1).cumsum(1)
+    x = torch.cat([torch.zeros(bsz, 1), x], 1) / x[:, -1].unsqueeze(1)
+    return x
+
 
 def get_name(args):
     name = ''

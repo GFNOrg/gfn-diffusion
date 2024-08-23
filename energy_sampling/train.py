@@ -4,7 +4,7 @@ import torch
 import os
 
 from utils import set_seed, cal_subtb_coef_matrix, fig_to_image, get_gfn_optimizer, get_gfn_forward_loss, \
-    get_gfn_backward_loss, get_exploration_std, get_name
+    get_gfn_backward_loss, get_exploration_std, get_name, uniform_discretizer, random_discretizer
 from buffer import ReplayBuffer
 from langevin import langevin_dynamics
 from models import GFN
@@ -219,7 +219,9 @@ def eval_step(eval_data, energy, gfn_model, final_eval=False):
 def train_step(energy, gfn_model, gfn_optimizer, it, exploratory, buffer, buffer_ls, exploration_factor, exploration_wd):
     gfn_model.zero_grad()
 
-    discretizer = lambda bsz: uniform_discretizer(bsz, args.T)
+    # discretizer = lambda bsz: uniform_discretizer(bsz, args.T)
+    # discretizer = lambda bsz: uniform_discretizer(bsz, np.random.randint(10,args.T+1))
+    discretizer = lambda bsz: random_discretizer(bsz, args.T, 10)
     exploration_std = get_exploration_std(it, exploratory, exploration_factor, exploration_wd)
 
     if args.both_ways:
