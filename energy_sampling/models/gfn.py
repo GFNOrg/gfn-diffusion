@@ -144,8 +144,8 @@ class GFN(nn.Module):
 
             logf[:, i] = flow
             if self.partial_energy:
-                ref_log_var = np.log(self.t_scale * ts[:, max(1, i)])
-                log_p_ref = -0.5 * (logtwopi + ref_log_var + np.exp(-ref_log_var) * (s ** 2)).sum(1)
+                ref_log_var = (self.t_scale * ts[:, max(1, i)]).log()
+                log_p_ref = -0.5 * (logtwopi + ref_log_var.unsqueeze(1) + (-ref_log_var).exp().unsqueeze(1) * (s ** 2)).sum(1)
                 logf[:, i] += (1 - ts[:, i]) * log_p_ref + ts[:, i] * log_r(s)
 
             if exploration_std is None:
@@ -232,8 +232,8 @@ class GFN(nn.Module):
 
             logf[:, trajectory_length - i - 1] = flow
             if self.partial_energy:
-                ref_log_var = np.log(self.t_scale * ts[:, max(1, trajectory_length - i - 1)])
-                log_p_ref = -0.5 * (logtwopi + ref_log_var + np.exp(-ref_log_var) * (s ** 2)).sum(1)
+                ref_log_var = (self.t_scale * ts[:, max(1, trajectory_length - i - 1)]).log()
+                log_p_ref = -0.5 * (logtwopi + ref_log_var.unsqueeze(1) + (-ref_log_var).exp().unsqueeze(1) * (s ** 2)).sum(1)
                 logf[:, trajectory_length - i - 1] += ts[:, trajectory_length - i - 1] * log_p_ref + ts[:, i + 1] * log_r(s)
 
             noise = ((s - s_) - dts.unsqueeze(1) * pf_mean) / (dts.sqrt().unsqueeze(1) * (pflogvars / 2).exp())
