@@ -136,7 +136,7 @@ def get_energy():
 def plot_step(energy, gfn_model, name):
     if args.energy == 'many_well':
         batch_size = plot_data_size
-        samples = gfn_model.sample(batch_size, energy.log_reward)
+        samples = gfn_model.sample(batch_size, lambda bsz: uniform_discretizer(bsz, args.T), energy.log_reward)
 
         vizualizations = viz_many_well(energy, samples)
         fig_samples_x13, ax_samples_x13, fig_kde_x13, ax_kde_x13, fig_contour_x13, ax_contour_x13, fig_samples_x23, ax_samples_x23, fig_kde_x23, ax_kde_x23, fig_contour_x23, ax_contour_x23 = vizualizations
@@ -162,7 +162,7 @@ def plot_step(energy, gfn_model, name):
 
     else:
         batch_size = plot_data_size
-        samples = gfn_model.sample(batch_size, energy.log_reward)
+        samples = gfn_model.sample(batch_size, lambda bsz: uniform_discretizer(bsz, args.T), energy.log_reward)
         gt_samples = energy.sample(batch_size)
 
         fig_contour, ax_contour = get_figure(bounds=(-13., 13.))
@@ -191,12 +191,12 @@ def eval_step(eval_data, energy, gfn_model, final_eval=False):
         init_state = torch.zeros(final_eval_data_size, energy.data_ndim).to(device)
         samples, metrics['final_eval/log_Z'], metrics['final_eval/log_Z_lb'], metrics[
             'final_eval/log_Z_learned'] = log_partition_function(
-            init_state, gfn_model, energy.log_reward)
+            init_state, lambda bsz: uniform_discretizer(bsz, args.T), gfn_model, energy.log_reward)
     else:
         init_state = torch.zeros(eval_data_size, energy.data_ndim).to(device)
         samples, metrics['eval/log_Z'], metrics['eval/log_Z_lb'], metrics[
             'eval/log_Z_learned'] = log_partition_function(
-            init_state, gfn_model, energy.log_reward)
+            init_state, gfn_model, lambda bsz: uniform_discretizer(bsz, args.T), energy.log_reward)
     if eval_data is None:
         log_elbo = None
         sample_based_metrics = None
@@ -204,10 +204,12 @@ def eval_step(eval_data, energy, gfn_model, final_eval=False):
         if final_eval:
             metrics['final_eval/mean_log_likelihood'] = 0. if args.mode_fwd == 'pis' else mean_log_likelihood(eval_data,
                                                                                                               gfn_model,
+                                                                                                              lambda bsz: uniform_discretizer(bsz, args.T),
                                                                                                               energy.log_reward)
         else:
             metrics['eval/mean_log_likelihood'] = 0. if args.mode_fwd == 'pis' else mean_log_likelihood(eval_data,
                                                                                                         gfn_model,
+                                                                                                        lambda bsz: uniform_discretizer(bsz, args.T),
                                                                                                         energy.log_reward)
         metrics.update(get_sample_metrics(samples, eval_data, final_eval))
     gfn_model.train()
@@ -217,36 +219,37 @@ def eval_step(eval_data, energy, gfn_model, final_eval=False):
 def train_step(energy, gfn_model, gfn_optimizer, it, exploratory, buffer, buffer_ls, exploration_factor, exploration_wd):
     gfn_model.zero_grad()
 
+    discretizer = lambda bsz: uniform_discretizer(bsz, args.T)
     exploration_std = get_exploration_std(it, exploratory, exploration_factor, exploration_wd)
 
     if args.both_ways:
         if it % 2 == 0:
             if args.sampling == 'buffer':
-                loss, states, _, _, log_r  = fwd_train_step(energy, gfn_model, exploration_std, return_exp=True)
+                loss, states, _, _, log_r  = fwd_train_step(energy, gfn_model, discretizer, exploration_std, return_exp=True)
                 buffer.add(states[:, -1],log_r)
             else:
                 loss = fwd_train_step(energy, gfn_model, exploration_std)
         else:
-            loss = bwd_train_step(energy, gfn_model, buffer, buffer_ls, exploration_std, it=it)
+            loss = bwd_train_step(energy, gfn_model, buffer, buffer_ls, discretizer, exploration_std, it=it)
 
     elif args.bwd:
-        loss = bwd_train_step(energy, gfn_model, buffer, buffer_ls, exploration_std, it=it)
+        loss = bwd_train_step(energy, gfn_model, buffer, buffer_ls, discretizer, exploration_std, it=it)
     else:
-        loss = fwd_train_step(energy, gfn_model, exploration_std)
+        loss = fwd_train_step(energy, gfn_model, discretizer, exploration_std)
 
     loss.backward()
     gfn_optimizer.step()
     return loss.item()
 
 
-def fwd_train_step(energy, gfn_model, exploration_std, return_exp=False):
+def fwd_train_step(energy, gfn_model, discretizer, exploration_std, return_exp=False):
     init_state = torch.zeros(args.batch_size, energy.data_ndim).to(device)
-    loss = get_gfn_forward_loss(args.mode_fwd, init_state, gfn_model, energy.log_reward, coeff_matrix,
+    loss = get_gfn_forward_loss(args.mode_fwd, init_state, gfn_model, energy.log_reward, coeff_matrix, discretizer,
                                 exploration_std=exploration_std, return_exp=return_exp)
     return loss
 
 
-def bwd_train_step(energy, gfn_model, buffer, buffer_ls, exploration_std=None, it=0):
+def bwd_train_step(energy, gfn_model, buffer, buffer_ls, discretizer, exploration_std=None, it=0):
     if args.sampling == 'sleep_phase':
         samples = gfn_model.sleep_phase_sample(args.batch_size, exploration_std).to(device)
     elif args.sampling == 'energy':
@@ -262,7 +265,7 @@ def bwd_train_step(energy, gfn_model, buffer, buffer_ls, exploration_std=None, i
         else:
             samples, rewards = buffer.sample()
 
-    loss = get_gfn_backward_loss(args.mode_bwd, samples, gfn_model, energy.log_reward,
+    loss = get_gfn_backward_loss(args.mode_bwd, samples, gfn_model, energy.log_reward, discretizer,
                                  exploration_std=exploration_std)
     return loss
 
@@ -280,7 +283,7 @@ def train():
     wandb.init(project="GFN Energy", config=config, name=name)
 
     gfn_model = GFN(energy.data_ndim, args.s_emb_dim, args.hidden_dim, args.harmonics_dim, args.t_emb_dim,
-                    trajectory_length=args.T, clipping=args.clipping, lgv_clip=args.lgv_clip, gfn_clip=args.gfn_clip,
+                    clipping=args.clipping, lgv_clip=args.lgv_clip, gfn_clip=args.gfn_clip,
                     langevin=args.langevin, learned_variance=args.learned_variance,
                     partial_energy=args.partial_energy, log_var_range=args.log_var_range,
                     pb_scale_range=args.pb_scale_range,

@@ -76,26 +76,26 @@ def get_gfn_optimizer(gfn_model, lr_policy, lr_flow, lr_back, back_model=False, 
 
 
 
-def get_gfn_forward_loss(mode, init_state, gfn_model, log_reward, coeff_matrix, exploration_std=None, return_exp=False):
+def get_gfn_forward_loss(mode, init_state, gfn_model, log_reward, coeff_matrix, discretizer, exploration_std=None, return_exp=False):
     if mode == 'tb':
-        loss = fwd_tb(init_state, gfn_model, log_reward, exploration_std, return_exp=return_exp)
+        loss = fwd_tb(init_state, gfn_model, log_reward, discretizer, exploration_std, return_exp=return_exp)
     elif mode == 'tb-avg':
-        loss = fwd_tb_avg(init_state, gfn_model, log_reward, exploration_std, return_exp=return_exp)
+        loss = fwd_tb_avg(init_state, gfn_model, log_reward, discretizer, exploration_std, return_exp=return_exp)
     elif mode == 'db':
-        loss = db(init_state, gfn_model, log_reward, exploration_std)
+        loss = db(init_state, gfn_model, log_reward, discretizer, exploration_std)
     elif mode == 'subtb':
-        loss = subtb(init_state, gfn_model, log_reward, coeff_matrix, exploration_std)
+        loss = subtb(init_state, gfn_model, log_reward, coeff_matrix, discretizer, exploration_std)
     return loss
 
 
 
-def get_gfn_backward_loss(mode, samples, gfn_model, log_reward, exploration_std=None):
+def get_gfn_backward_loss(mode, samples, gfn_model, log_reward, discretizer, exploration_std=None):
     if mode == 'tb':
-        loss = bwd_tb(samples, gfn_model, log_reward, exploration_std)
+        loss = bwd_tb(samples, gfn_model, log_reward, discretizer, exploration_std)
     elif mode == 'tb-avg':
-        loss = bwd_tb_avg(samples, gfn_model, log_reward, exploration_std)
+        loss = bwd_tb_avg(samples, gfn_model, log_reward, discretizer, exploration_std)
     elif mode == 'mle':
-        loss = bwd_mle(samples, gfn_model, log_reward, exploration_std)
+        loss = bwd_mle(samples, gfn_model, log_reward, discretizer, exploration_std)
     return loss
 
 
@@ -108,6 +108,10 @@ def get_exploration_std(iter, exploratory, exploration_factor=0.1, exploration_w
         exploration_std = exploration_factor
     expl = lambda x: exploration_std
     return expl
+
+
+def uniform_discretizer(bsz, trajectory_length):
+    return torch.linspace(0, 1, trajectory_length + 1).repeat(bsz, 1)
 
 
 def get_name(args):

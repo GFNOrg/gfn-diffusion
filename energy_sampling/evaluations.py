@@ -1,11 +1,11 @@
 import torch
-from utils import logmeanexp
+from utils import logmeanexp, uniform_discretizer
 from sample_metrics import compute_distribution_distances
 
 
 @torch.no_grad()
-def log_partition_function(initial_state, gfn, log_reward_fn):
-    states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_fwd(initial_state, None, log_reward_fn)
+def log_partition_function(initial_state, gfn, discretizer, log_reward_fn):
+    states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_fwd(initial_state, discretizer, None, log_reward_fn)
     log_r = log_reward_fn(states[:, -1])
     log_weight = log_r + log_pbs.sum(-1) - log_pfs.sum(-1)
 
@@ -17,10 +17,10 @@ def log_partition_function(initial_state, gfn, log_reward_fn):
 
 
 @torch.no_grad()
-def mean_log_likelihood(data, gfn, log_reward_fn, num_evals=10):
+def mean_log_likelihood(data, gfn, discretizer, log_reward_fn, num_evals=10):
     bsz = data.shape[0]
     data = data.unsqueeze(1).repeat(1, num_evals, 1).view(bsz * num_evals, -1)
-    states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_bwd(data, None, log_reward_fn)
+    states, log_pfs, log_pbs, log_fs = gfn.get_trajectory_bwd(data, discretizer, None, log_reward_fn)
     log_weight = (log_pfs.sum(-1) - log_pbs.sum(-1)).view(bsz, num_evals, -1)
     return logmeanexp(log_weight, dim=1).mean()
 
