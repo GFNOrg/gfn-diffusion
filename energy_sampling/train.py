@@ -95,6 +95,12 @@ parser.add_argument('--seed', type=int, default=12345)
 parser.add_argument('--weight_decay', type=float, default=1e-7)
 parser.add_argument('--use_weight_decay', action='store_true', default=False)
 parser.add_argument('--eval', action='store_true', default=False)
+parser.add_argument('--discretizer', type=str, default="random", choices=('random', 'uniform', 'adaptive'))
+parser.add_argument('--discretizer_max_ratio', type=float, default=10.0)
+parser.add_argument('--discretizer_traj_length', type=int, default=100)
+parser.add_argument('--traj_length_strategy', type=str, default="static", choices=('static', 'dynamic'))
+parser.add_argument('--min_traj_length', type=int, default=10)
+parser.add_argument('--max_traj_length', type=int, default=100)
 args = parser.parse_args()
 
 set_seed(args.seed)
@@ -221,7 +227,13 @@ def train_step(energy, gfn_model, gfn_optimizer, it, exploratory, buffer, buffer
 
     # discretizer = lambda bsz: uniform_discretizer(bsz, args.T)
     # discretizer = lambda bsz: uniform_discretizer(bsz, np.random.randint(10,args.T+1))
-    discretizer = lambda bsz: random_discretizer(bsz, args.T, 10)
+    # discretizer = lambda bsz: random_discretizer(bsz, args.T, 10)
+    traj_length = args.discretizer_traj_length if args.traj_length_strategy == 'static' \
+        else np.random.randint(low=args.min_traj_length, high=args.max_traj_length+1)
+    if args.discretizer == 'random':
+        discretizer = lambda bsz: random_discretizer(bsz, traj_length, max_ratio=args.discretizer_max_ratio)
+    else:
+        discretizer = lambda bsz: uniform_discretizer(bsz, traj_length)
     exploration_std = get_exploration_std(it, exploratory, exploration_factor, exploration_wd)
 
     if args.both_ways:
@@ -230,7 +242,7 @@ def train_step(energy, gfn_model, gfn_optimizer, it, exploratory, buffer, buffer
                 loss, states, _, _, log_r  = fwd_train_step(energy, gfn_model, discretizer, exploration_std, return_exp=True)
                 buffer.add(states[:, -1],log_r)
             else:
-                loss = fwd_train_step(energy, gfn_model, exploration_std)
+                loss = fwd_train_step(energy, gfn_model, discretizer, exploration_std)
         else:
             loss = bwd_train_step(energy, gfn_model, buffer, buffer_ls, discretizer, exploration_std, it=it)
 
