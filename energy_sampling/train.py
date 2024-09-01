@@ -112,6 +112,8 @@ final_eval_data_size = 2000
 plot_data_size = 2000
 final_plot_data_size = 2000
 
+_LIST_OF_NO_SAMPLES_ENERGIES = ['log_cox']
+
 if args.pis_architectures:
     args.zero_init = True
 
@@ -292,7 +294,7 @@ def train():
         os.makedirs(name)
 
     energy = get_energy()
-    eval_data = energy.sample(eval_data_size).to(device)
+    eval_data = energy.sample(eval_data_size).to(device) if not (args.energy in _LIST_OF_NO_SAMPLES_ENERGIES) else None
 
     config = args.__dict__
     config["Experiment"] = "{args.energy}"
