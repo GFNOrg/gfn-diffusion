@@ -165,7 +165,7 @@ class GFN(nn.Module):
                         pflogvars_sample = torch.logaddexp(pflogvars, add_log_var).detach()
 
             if pis:
-                s_ = s + dts * pf_mean + dts.sqrt().unsqueeze(1) * (
+                s_ = s + dts.unsqueeze(1) * pf_mean + dts.sqrt().unsqueeze(1) * (
                         pflogvars_sample / 2).exp() * torch.randn_like(s, device=self.device)
             else:
                 s_ = s + dts.unsqueeze(1) * pf_mean.detach() + dts.sqrt().unsqueeze(1) * (
