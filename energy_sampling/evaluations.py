@@ -26,8 +26,19 @@ def mean_log_likelihood(data, gfn, discretizer, log_reward_fn, num_evals=10):
 
 
 @torch.no_grad()
-def get_sample_metrics(samples, gt_samples=None, final_eval=False):
+def get_sample_metrics(samples, gt_samples=None, final_eval=False, K=None):
     if gt_samples is None:
         return
 
-    return compute_distribution_distances(samples.unsqueeze(1), gt_samples.unsqueeze(1), final_eval)
+    distances = compute_distribution_distances(samples.unsqueeze(1), gt_samples.unsqueeze(1), final_eval)
+
+    if K is not None:
+        K_distances = dict()
+        for key, value in distances.items():
+            if key.startswith('final_eval'):
+                K_distances[f'final_eval_{K}_steps/'+key.split('/')[-1]] = value
+            else:
+                K_distances[f'eval_{K}_steps/key'] = value
+        distances = K_distances
+
+    return distances
