@@ -38,7 +38,7 @@ def get_sample_metrics(samples, gt_samples=None, final_eval=False, K=None):
             if key.startswith('final_eval'):
                 K_distances[f'final_eval_{K}_steps/'+key.split('/')[-1]] = value
             else:
-                K_distances[f'eval_{K}_steps/key'] = value
+                K_distances[f'eval_{K}_steps/{key}'] = value
         distances = K_distances
 
     return distances

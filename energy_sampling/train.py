@@ -201,7 +201,7 @@ def eval_step(eval_data, energy, gfn_model, final_eval=False):
         init_state = torch.zeros(final_eval_data_size, energy.data_ndim).to(device)
         samples, metrics['final_eval/log_Z'], metrics['final_eval/log_Z_lb'], metrics[
             'final_eval/log_Z_learned'] = log_partition_function(
-            init_state, lambda bsz: uniform_discretizer(bsz, args.T), gfn_model, energy.log_reward)
+            init_state, gfn_model, lambda bsz: uniform_discretizer(bsz, args.T), energy.log_reward)
     else:
         init_state = torch.zeros(eval_data_size, energy.data_ndim).to(device)
         samples, metrics['eval/log_Z'], metrics['eval/log_Z_lb'], metrics[
@@ -232,7 +232,7 @@ def eval_step_K_step_discretizer(eval_data, energy, gfn_model, final_eval=False)
         init_state = torch.zeros(final_eval_data_size, energy.data_ndim).to(device)
         samples, metrics[f'final_eval_{args.discretizer_traj_length}_steps/log_Z'], metrics[f'final_eval_{args.discretizer_traj_length}_steps/log_Z_lb'], metrics[
             f'final_eval_{args.discretizer_traj_length}_steps/log_Z_learned'] = log_partition_function(
-            init_state, lambda bsz: uniform_discretizer(bsz, args.discretizer_traj_length), gfn_model, energy.log_reward)
+            init_state, gfn_model, lambda bsz: uniform_discretizer(bsz, args.discretizer_traj_length), energy.log_reward)
     else:
         init_state = torch.zeros(eval_data_size, energy.data_ndim).to(device)
         samples, metrics[f'eval_{args.discretizer_traj_length}_steps/log_Z'], metrics[f'eval_{args.discretizer_traj_length}_steps/log_Z_lb'], metrics[
@@ -374,12 +374,12 @@ def train():
             if i % 1000 == 0:
                 torch.save(gfn_model.state_dict(), f'{name}model.pt')
 
-    eval_results = final_eval(energy, gfn_model).to(device)
+    eval_results = final_eval(energy, gfn_model)
     metrics.update(eval_results)
     if 'tb-avg' in args.mode_fwd or 'tb-avg' in args.mode_bwd:
         del metrics['eval/log_Z_learned']
 
-    eval_results_K = final_eval_K_steps(energy, gfn_model).to(device)
+    eval_results_K = final_eval_K_steps(energy, gfn_model)
     metrics.update(eval_results_K)
     if 'tb-avg' in args.mode_fwd or 'tb-avg' in args.mode_bwd:
         del metrics[f'eval_{args.discretizer_traj_length}_steps/log_Z_learned']
@@ -388,12 +388,12 @@ def train():
 
 
 def final_eval(energy, gfn_model):
-    final_eval_data = energy.sample(final_eval_data_size)
+    final_eval_data = energy.sample(final_eval_data_size).to(device) if not (args.energy in _LIST_OF_NO_SAMPLES_ENERGIES) else None
     results = eval_step(final_eval_data, energy, gfn_model, final_eval=True)
     return results
 
 def final_eval_K_steps(energy, gfn_model):
-    final_eval_data = energy.sample(final_eval_data_size)
+    final_eval_data = energy.sample(final_eval_data_size).to(device) if not (args.energy in _LIST_OF_NO_SAMPLES_ENERGIES) else None
     results = eval_step_K_step_discretizer(final_eval_data, energy, gfn_model, final_eval=True)
     return results
 
