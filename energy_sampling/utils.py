@@ -144,16 +144,21 @@ def low_discrepancy_discretizer(bsz, traj_length=2):
 
 
 def get_name(args):
-    name = ''
+    name = f'{args.discretizer}_{args.discretizer_traj_length}_steps_discretizer/'
+    if args.discretizer == 'random':
+        name += f'max_ratio_{args.discretizer_max_ratio}/'
+    if args.traj_length_strategy == 'dynamic':
+        name += f'dynamic_{args.min_traj_length}_{args.max_traj_length}/'
+
     if args.langevin:
-        name = f'langevin_'
+        name += f'langevin_'
         if args.langevin_scaling_per_dimension:
-            name = f'langevin_scaling_per_dimension_'
+            name += f'langevin_scaling_per_dimension_'
     if args.exploratory and (args.exploration_factor is not None):
         if args.exploration_wd:
-            name = f'exploration_wd_{args.exploration_factor}_{name}_'
+            name += f'exploration_wd_{args.exploration_factor}_{name}_'
         else:
-            name = f'exploration_{args.exploration_factor}_{name}_'
+            name += f'exploration_{args.exploration_factor}_{name}_'
 
     if args.learn_pb:
         name = f'{name}learn_pb_scale_range_{args.pb_scale_range}_'
