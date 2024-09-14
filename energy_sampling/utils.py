@@ -2,6 +2,7 @@ import random
 import numpy as np
 import math
 import PIL
+import torch
 
 from gflownet_losses import *
 
@@ -122,14 +123,24 @@ def random_discretizer(bsz, trajectory_length, max_ratio):
     return x
 
 
-def low_discrepancy_discretizer(bsz):
-    u = torch.rand(1)
-    shift_vector = torch.arange(bsz)/bsz
+def low_discrepancy_discretizer(bsz, traj_length=2):
+    u = torch.rand(1, traj_length).cumsum(1)
+    shift_vector = (torch.arange(bsz) / bsz).unsqueeze(1).repeat(1, traj_length-1)
+    u = (u/u[:, -1])[:, :-1]
     timestep = u + shift_vector
-    timestep_in_range = timestep % 1.0
-    timestep_in_range = timestep_in_range.unsqueeze(-1)
-    x = torch.cat([torch.zeros(bsz, 1), timestep_in_range, torch.ones(bsz, 1)], 1)
+    timesteps_in_range = timestep % 1.0
+    timesteps_sorted, indices = torch.sort(timesteps_in_range, dim=-1, descending=False)
+    x = torch.cat([torch.zeros(bsz, 1), timesteps_sorted, torch.ones(bsz, 1)], dim=1)
     return x
+
+    # old code below:
+    # u = torch.rand(1)
+    # shift_vector = torch.arange(bsz)/bsz
+    # timestep = u + shift_vector
+    # timestep_in_range = timestep % 1.0
+    # timestep_in_range = timestep_in_range.unsqueeze(-1)
+    # x = torch.cat([torch.zeros(bsz, 1), timestep_in_range, torch.ones(bsz, 1)], 1)
+    # return x
 
 
 def get_name(args):

@@ -237,7 +237,7 @@ def train_step(energy, gfn_model, gfn_optimizer, it, exploratory, buffer, buffer
     if args.discretizer == 'random':
         discretizer = lambda bsz: random_discretizer(bsz, traj_length, max_ratio=args.discretizer_max_ratio)
     elif args.discretizer == 'low_discrepancy':
-        discretizer = lambda bsz: low_discrepancy_discretizer(bsz)
+        discretizer = lambda bsz: low_discrepancy_discretizer(bsz, traj_length)
     else:
         discretizer = lambda bsz: uniform_discretizer(bsz, traj_length)
     exploration_std = get_exploration_std(it, exploratory, exploration_factor, exploration_wd)
