@@ -118,7 +118,7 @@ if args.pis_architectures:
     args.zero_init = True
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-coeff_matrix = cal_subtb_coef_matrix(args.subtb_lambda, args.T).to(device)
+coeff_matrix = cal_subtb_coef_matrix(args.subtb_lambda, args.discretizer_traj_length).to(device)
 
 if args.both_ways and args.bwd:
     args.bwd = False
