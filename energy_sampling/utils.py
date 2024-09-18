@@ -123,10 +123,23 @@ def random_discretizer(bsz, trajectory_length, max_ratio):
     return x
 
 
+# def low_discrepancy_discretizer(bsz, traj_length=2):
+#     u = torch.rand(1, traj_length).cumsum(1)
+#     shift_vector = (torch.arange(bsz) / bsz).unsqueeze(1).repeat(1, traj_length-1)
+#     u = (u/u[:, -1])[:, :-1]
+#     timestep = u + shift_vector
+#     timesteps_in_range = timestep % 1.0
+#     timesteps_sorted, indices = torch.sort(timesteps_in_range, dim=-1, descending=False)
+#     x = torch.cat([torch.zeros(bsz, 1), timesteps_sorted, torch.ones(bsz, 1)], dim=1)
+#     return x
+
+
 def low_discrepancy_discretizer(bsz, traj_length=2):
-    u = torch.rand(1, traj_length).cumsum(1)
-    shift_vector = (torch.arange(bsz) / bsz).unsqueeze(1).repeat(1, traj_length-1)
-    u = (u/u[:, -1])[:, :-1]
+    u = torch.rand(1, traj_length-1)
+    u_sorted, _ = torch.sort(u, dim=-1, descending=False)
+    # print(u_sorted)
+    # print(u_sorted.shape)
+    shift_vector = (torch.arange(bsz) / bsz).unsqueeze(1).repeat(1, traj_length - 1)
     timestep = u + shift_vector
     timesteps_in_range = timestep % 1.0
     timesteps_sorted, indices = torch.sort(timesteps_in_range, dim=-1, descending=False)
@@ -141,6 +154,24 @@ def low_discrepancy_discretizer(bsz, traj_length=2):
     # timestep_in_range = timestep_in_range.unsqueeze(-1)
     # x = torch.cat([torch.zeros(bsz, 1), timestep_in_range, torch.ones(bsz, 1)], 1)
     # return x
+
+
+def low_discrepancy_discretizer2(bsz, traj_length=2):
+    s = traj_length - 1
+    u = torch.rand(1, s)
+    shift_vector = torch.arange(bsz) / bsz
+    timestep = u + shift_vector.unsqueeze(-1)
+    timestep_in_range = timestep % 1.0
+    x = (timestep_in_range + torch.arange(s).unsqueeze(0)) / s
+    x = torch.stack([col[torch.randperm(col.size(0))] for col in x.t()]).t()
+    return x
+
+
+def shifted_equidistant(bsz, traj_length, eps=1e-4):
+    bound = 1 / traj_length - eps
+    noise = torch.empty(bsz, 1).uniform_(- bound, bound)
+    steps = (torch.arange(1, traj_length) / traj_length).unsqueeze(0) + noise
+    return torch.cat([torch.zeros(bsz, 1), steps, torch.ones(bsz, 1)], dim=1)
 
 
 def get_name(args):

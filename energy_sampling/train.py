@@ -3,8 +3,9 @@ import argparse
 import torch
 import os
 
-from utils import set_seed, cal_subtb_coef_matrix, fig_to_image, get_gfn_optimizer, get_gfn_forward_loss, \
-    get_gfn_backward_loss, get_exploration_std, get_name, uniform_discretizer, random_discretizer, low_discrepancy_discretizer
+from utils import (set_seed, cal_subtb_coef_matrix, fig_to_image, get_gfn_optimizer, get_gfn_forward_loss, \
+    get_gfn_backward_loss, get_exploration_std, get_name, uniform_discretizer, random_discretizer,
+                   low_discrepancy_discretizer, low_discrepancy_discretizer2, shifted_equidistant)
 from buffer import ReplayBuffer
 from langevin import langevin_dynamics
 from models import GFN
@@ -95,7 +96,8 @@ parser.add_argument('--seed', type=int, default=12345)
 parser.add_argument('--weight_decay', type=float, default=1e-7)
 parser.add_argument('--use_weight_decay', action='store_true', default=False)
 parser.add_argument('--eval', action='store_true', default=False)
-parser.add_argument('--discretizer', type=str, default="random", choices=('random', 'uniform', 'low_discrepancy', 'adaptive'))
+parser.add_argument('--discretizer', type=str, default="random",
+                    choices=('random', 'uniform', 'low_discrepancy', 'low_discrepancy2', 'equidistant', 'adaptive'))
 parser.add_argument('--discretizer_max_ratio', type=float, default=10.0)
 parser.add_argument('--discretizer_traj_length', type=int, default=100)
 parser.add_argument('--traj_length_strategy', type=str, default="static", choices=('static', 'dynamic'))
@@ -269,6 +271,10 @@ def train_step(energy, gfn_model, gfn_optimizer, it, exploratory, buffer, buffer
         discretizer = lambda bsz: random_discretizer(bsz, traj_length, max_ratio=args.discretizer_max_ratio)
     elif args.discretizer == 'low_discrepancy':
         discretizer = lambda bsz: low_discrepancy_discretizer(bsz, traj_length)
+    elif args.discretizer == 'low_discrepancy2':
+        discretizer = lambda bsz: low_discrepancy_discretizer2(bsz, traj_length)
+    elif args.discretizer == 'equidistant':
+        discretizer = lambda bsz: shifted_equidistant(bsz, traj_length)
     else:
         discretizer = lambda bsz: uniform_discretizer(bsz, traj_length)
     exploration_std = get_exploration_std(it, exploratory, exploration_factor, exploration_wd)
