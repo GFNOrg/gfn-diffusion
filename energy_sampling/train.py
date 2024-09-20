@@ -33,7 +33,7 @@ parser.add_argument('--subtb_lambda', type=int, default=2)
 parser.add_argument('--t_scale', type=float, default=5.)
 parser.add_argument('--log_var_range', type=float, default=4.)
 parser.add_argument('--energy', type=str, default='9gmm',
-                    choices=('9gmm', '25gmm', 'hard_funnel', 'easy_funnel', 'many_well', 'log_cox'))
+                    choices=('9gmm', '25gmm', 'hard_funnel', 'easy_funnel', 'many_well', 'log_cox', 'cancer', 'credit'))
 parser.add_argument('--mode_fwd', type=str, default="tb", choices=('tb', 'tb-avg', 'db', 'subtb', "pis"))
 parser.add_argument('--mode_bwd', type=str, default="tb", choices=('tb', 'tb-avg', 'mle'))
 parser.add_argument('--both_ways', action='store_true', default=False)
@@ -103,6 +103,8 @@ parser.add_argument('--discretizer_traj_length', type=int, default=100)
 parser.add_argument('--traj_length_strategy', type=str, default="static", choices=('static', 'dynamic'))
 parser.add_argument('--min_traj_length', type=int, default=10)
 parser.add_argument('--max_traj_length', type=int, default=100)
+parser.add_argument('--use_prior', action='store_true', default=False)
+parser.add_argument('--prior_scale', type=float, default=10.0)
 args = parser.parse_args()
 
 set_seed(args.seed)
@@ -111,6 +113,12 @@ if 'SLURM_PROCID' in os.environ:
 
 eval_data_size = 2000
 final_eval_data_size = 2000
+if args.energy == 'cancer':
+    eval_data_size = 10080
+    final_eval_data_size = 10080
+if args.energy == 'credit':
+    eval_data_size = 10000
+    final_eval_data_size = 10000
 plot_data_size = 2000
 final_plot_data_size = 2000
 
@@ -142,6 +150,10 @@ def get_energy():
         energy = ManyWell(device=device)
     elif args.energy == 'log_cox':
         energy = CoxDist(device=device)
+    elif args.energy == 'cancer':
+        energy = BreastCancer(use_prior=args.use_prior, prior_scale=args.prior_scale, device=device)
+    elif args.energy == 'credit':
+        energy = GermanCredit(use_prior=args.use_prior, prior_scale=args.prior_scale, device=device)
     return energy
 
 

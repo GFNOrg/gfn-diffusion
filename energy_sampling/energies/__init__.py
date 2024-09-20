@@ -4,3 +4,5 @@ from .hard_funnel import HardFunnel
 from .easy_funnel import EasyFunnel
 from .many_well import ManyWell
 from .lgcp import CoxDist
+from .breast_cancer import BreastCancer
+from .german_credit import GermanCredit
