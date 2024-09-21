@@ -87,6 +87,8 @@ def get_gfn_forward_loss(mode, init_state, gfn_model, log_reward, coeff_matrix, 
         loss = db(init_state, gfn_model, log_reward, discretizer, exploration_std, condition=condition)
     elif mode == 'subtb':
         loss = subtb(init_state, gfn_model, log_reward, coeff_matrix, discretizer, exploration_std, condition=condition)
+    elif mode == 'pis':
+        loss = pis(init_state, gfn_model, log_reward, discretizer, exploration_std=exploration_std, condition=condition)
     return loss
 
 

@@ -92,7 +92,8 @@ class GFN(nn.Module):
 
         t_lgv = t
         bsz = s.shape[0]
-        t = self.t_model(t).repeat(bsz, 1)
+        
+        t = self.t_model(t)
         if condition is not None:
             s = self.s_model(s, condition)
         else:
@@ -242,13 +243,13 @@ class GFN(nn.Module):
 
         return states, logpf, logpb, logf
 
-    def sample(self, batch_size, discretizer, log_r, condition=None):
+    def sample(self, batch_size, discretizer, log_r, condition=None, pis=None):
         s = torch.zeros(batch_size, self.dim).to(self.device)
-        return self.get_trajectory_fwd(s, discretizer, log_r, condition)[0][:, -1]
+        return self.get_trajectory_fwd(s, discretizer, None, log_r, condition=condition, pis=pis)[0][:, -1]
 
     def sleep_phase_sample(self, batch_size, discretizer, exploration_std, condition=None):
         s = torch.zeros(batch_size, self.dim).to(self.device)
         return self.get_trajectory_fwd(s, discretizer, exploration_std, log_r=None, condition=condition)[0][:, -1]
 
-    def forward(self, s, discretizer, exploration_std=None, log_r=None, condition=None):
-        return self.get_trajectory_fwd(s, discretizer, exploration_std, log_r, condition)
+    def forward(self, s, discretizer, exploration_std=None, log_r=None, condition=None, pis=None):
+        return self.get_trajectory_fwd(s, discretizer, exploration_std, log_r, condition=condition, pis=pis)

@@ -2,6 +2,7 @@ from plot_utils import *
 import argparse
 import torch
 import os
+import numpy as np
 
 from utils import (set_seed, cal_subtb_coef_matrix, fig_to_image, get_gfn_optimizer, get_gfn_forward_loss, \
     get_gfn_backward_loss, get_exploration_std, get_name, uniform_discretizer, random_discretizer,
@@ -38,7 +39,7 @@ parser.add_argument('--t_scale', type=float, default=5.)
 parser.add_argument('--log_var_range', type=float, default=4.)
 parser.add_argument('--energy', type=str, default='vae',
                     choices=('vae'))
-parser.add_argument('--mode_fwd', type=str, default="tb", choices=('tb', 'tb-avg', 'db', 'subtb', 'cond-tb-avg'))
+parser.add_argument('--mode_fwd', type=str, default="tb", choices=('tb', 'tb-avg', 'db', 'subtb', 'cond-tb-avg', 'pis'))
 parser.add_argument('--mode_bwd', type=str, default="tb", choices=('tb', 'tb-avg', 'mle', 'cond-tb-avg'))
 parser.add_argument('--both_ways', action='store_true', default=False)
 parser.add_argument('--repeats', type=int, default=10)
@@ -159,7 +160,7 @@ def plot_step(energy, gfn_model, name):
         vae_samples = energy.vae.decode(vae_z)
         fig_vae_samples, ax_vae_samples = get_vae_images(vae_samples.detach().cpu())
 
-        gfn_samples_z = gfn_model.sample(batch_size, lambda bsz: uniform_discretizer(bsz, args.T), energy.log_reward, real_data)
+        gfn_samples_z = gfn_model.sample(batch_size, lambda bsz: uniform_discretizer(bsz, args.T), energy.log_reward, condition=real_data, pis=True if args.mode_fwd == 'pis' else False)
         gfn_samples = energy.vae.decode(gfn_samples_z)
         fig_gfn_samples, ax_gfn_samples = get_vae_images(gfn_samples.detach().cpu())
 
@@ -186,7 +187,7 @@ def plot_step_K_step_discretizer(energy, gfn_model, name):
         vae_samples = energy.vae.decode(vae_z)
         fig_vae_samples, ax_vae_samples = get_vae_images(vae_samples.detach().cpu())
 
-        gfn_samples_z = gfn_model.sample(batch_size, lambda bsz: uniform_discretizer(bsz, args.discretizer_traj_length), energy.log_reward, real_data)
+        gfn_samples_z = gfn_model.sample(batch_size, lambda bsz: uniform_discretizer(bsz, args.discretizer_traj_length), energy.log_reward, condition=real_data, pis=True if args.mode_fwd == 'pis' else False)
         gfn_samples = energy.vae.decode(gfn_samples_z)
         fig_gfn_samples, ax_gfn_samples = get_vae_images(gfn_samples.detach().cpu())
 
@@ -209,12 +210,12 @@ def eval_step(eval_data, energy, gfn_model, final_eval=False, condition=None):
         init_state = torch.zeros(final_eval_data_size, energy.data_ndim).to(device)
         samples, metrics['final_eval/log_Z'], metrics['final_eval/log_Z_lb'], metrics[
             'final_eval/log_Z_learned'] = log_partition_function(
-            init_state, gfn_model, lambda bsz: uniform_discretizer(bsz, args.T), energy.log_reward, condition=condition)
+            init_state, gfn_model, lambda bsz: uniform_discretizer(bsz, args.T), energy.log_reward, condition=condition, pis=False)
     else:
         init_state = torch.zeros(eval_data_size, energy.data_ndim).to(device)
         samples, metrics['eval/log_Z'], metrics['eval/log_Z_lb'], metrics[
             'eval/log_Z_learned'] = log_partition_function(
-            init_state, gfn_model, lambda bsz: uniform_discretizer(bsz, args.T), energy.log_reward, condition=condition)
+            init_state, gfn_model, lambda bsz: uniform_discretizer(bsz, args.T), energy.log_reward, condition=condition, pis=False)
     if eval_data is None:
         log_elbo = None
         sample_based_metrics = None
@@ -243,12 +244,12 @@ def eval_step_K_step_discretizer(eval_data, energy, gfn_model, final_eval=False,
         init_state = torch.zeros(final_eval_data_size, energy.data_ndim).to(device)
         samples, metrics[f'final_eval_{args.discretizer_traj_length}_steps/log_Z'], metrics[f'final_eval_{args.discretizer_traj_length}_steps/log_Z_lb'], metrics[
             f'final_eval_{args.discretizer_traj_length}_steps/log_Z_learned'] = log_partition_function(
-            init_state, gfn_model, lambda bsz: uniform_discretizer(bsz, args.discretizer_traj_length), energy.log_reward, condition=condition)
+            init_state, gfn_model, lambda bsz: uniform_discretizer(bsz, args.discretizer_traj_length), energy.log_reward, condition=condition, pis=False)
     else:
         init_state = torch.zeros(eval_data_size, energy.data_ndim).to(device)
         samples, metrics[f'eval_{args.discretizer_traj_length}_steps/log_Z'], metrics[f'eval_{args.discretizer_traj_length}_steps/log_Z_lb'], metrics[
             f'eval_{args.discretizer_traj_length}_steps/log_Z_learned'] = log_partition_function(
-            init_state, gfn_model, lambda bsz: uniform_discretizer(bsz, args.discretizer_traj_length), energy.log_reward, condition=condition)
+            init_state, gfn_model, lambda bsz: uniform_discretizer(bsz, args.discretizer_traj_length), energy.log_reward, condition=condition, pis=False)
     if eval_data is None:
         log_elbo = None
         sample_based_metrics = None
@@ -430,7 +431,7 @@ def train():
             metrics.update(eval_step_K_step_discretizer(eval_data, energy, gfn_model, final_eval=False, condition=condition))
             print('logz:', metrics[f'eval_{args.discretizer_traj_length}_steps/log_Z_learned'])
             if 'tb-avg' in args.mode_fwd or 'tb-avg' in args.mode_bwd:
-                del metrics['eval/log_Z_learned']
+                del metrics[f'eval_{args.discretizer_traj_length}_steps/log_Z_learned']
             if WANDB:
                 images = plot_step(energy, gfn_model, name)
                 metrics.update(images)

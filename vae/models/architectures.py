@@ -329,8 +329,8 @@ class TimeEncodingVAE(nn.Module):
         Arguments:
             t: float
         """
-        t_sin = ((t * self.pe) + self.timestep_phase).sin()
-        t_cos = ((t * self.pe) + self.timestep_phase).cos()
+        t_sin = ((t.unsqueeze(1) * self.pe) + self.timestep_phase).sin()
+        t_cos = ((t.unsqueeze(1) * self.pe) + self.timestep_phase).cos()
         t_emb = torch.cat([t_sin, t_cos], dim=-1)
         return self.t_model(t_emb)
 
@@ -458,8 +458,8 @@ class LangevinScalingModelVAE(nn.Module):
             self.lgv_model[-1].bias.data.fill_(0.01)
 
     def forward(self, t):
-        t_sin = ((t * self.pe) + self.timestep_phase).sin()
-        t_cos = ((t * self.pe) + self.timestep_phase).cos()
+        t_sin = ((t.unsqueeze(1) * self.pe) + self.timestep_phase).sin()
+        t_cos = ((t.unsqueeze(1) * self.pe) + self.timestep_phase).cos()
         t_emb = torch.cat([t_sin, t_cos], dim=-1)
         return self.lgv_model(t_emb)
 
