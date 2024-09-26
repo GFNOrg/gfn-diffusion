@@ -239,19 +239,21 @@ def eval_step(eval_data, energy, gfn_model, final_eval=False):
     gfn_model.train()
     return metrics
 
-def eval_step_K_step_discretizer(eval_data, energy, gfn_model, final_eval=False):
+def eval_step_K_step_discretizer(eval_data, energy, gfn_model, final_eval=False, traj_length=None):
     gfn_model.eval()
     metrics = dict()
+    if traj_length is None:
+        traj_length = args.discretizer_traj_length
     if final_eval:
         init_state = torch.zeros(final_eval_data_size, energy.data_ndim).to(device)
-        samples, metrics[f'final_eval_{args.discretizer_traj_length}_steps/log_Z'], metrics[f'final_eval_{args.discretizer_traj_length}_steps/log_Z_lb'], metrics[
-            f'final_eval_{args.discretizer_traj_length}_steps/log_Z_learned'] = log_partition_function(
-            init_state, gfn_model, lambda bsz: uniform_discretizer(bsz, args.discretizer_traj_length), energy.log_reward)
+        samples, metrics[f'final_eval_{traj_length}_steps/log_Z'], metrics[f'final_eval_{traj_length}_steps/log_Z_lb'], metrics[
+            f'final_eval_{traj_length}_steps/log_Z_learned'] = log_partition_function(
+            init_state, gfn_model, lambda bsz: uniform_discretizer(bsz, traj_length), energy.log_reward)
     else:
         init_state = torch.zeros(eval_data_size, energy.data_ndim).to(device)
-        samples, metrics[f'eval_{args.discretizer_traj_length}_steps/log_Z'], metrics[f'eval_{args.discretizer_traj_length}_steps/log_Z_lb'], metrics[
-            f'eval_{args.discretizer_traj_length}_steps/log_Z_learned'] = log_partition_function(
-            init_state, gfn_model, lambda bsz: uniform_discretizer(bsz, args.discretizer_traj_length), energy.log_reward)
+        samples, metrics[f'eval_{traj_length}_steps/log_Z'], metrics[f'eval_{traj_length}_steps/log_Z_lb'], metrics[
+            f'eval_{traj_length}_steps/log_Z_learned'] = log_partition_function(
+            init_state, gfn_model, lambda bsz: uniform_discretizer(bsz, traj_length), energy.log_reward)
     if eval_data is None:
         log_elbo = None
         sample_based_metrics = None
@@ -259,14 +261,14 @@ def eval_step_K_step_discretizer(eval_data, energy, gfn_model, final_eval=False)
         if final_eval:
             metrics[f'final_eval_{args.discretizer_traj_length}_steps/mean_log_likelihood'] = 0. if args.mode_fwd == 'pis' else mean_log_likelihood(eval_data,
                                                                                                               gfn_model,
-                                                                                                              lambda bsz: uniform_discretizer(bsz, args.discretizer_traj_length),
+                                                                                                              lambda bsz: uniform_discretizer(bsz, traj_length),
                                                                                                               energy.log_reward)
         else:
             metrics[f'eval_{args.discretizer_traj_length}_steps/mean_log_likelihood'] = 0. if args.mode_fwd == 'pis' else mean_log_likelihood(eval_data,
                                                                                                         gfn_model,
-                                                                                                        lambda bsz: uniform_discretizer(bsz, args.discretizer_traj_length),
+                                                                                                        lambda bsz: uniform_discretizer(bsz, traj_length),
                                                                                                         energy.log_reward)
-        metrics.update(get_sample_metrics(samples, eval_data, final_eval, K=args.discretizer_traj_length))
+        metrics.update(get_sample_metrics(samples, eval_data, final_eval, K=traj_length))
     gfn_model.train()
     return metrics
 
@@ -410,6 +412,7 @@ def final_eval(energy, gfn_model):
     results = eval_step(final_eval_data, energy, gfn_model, final_eval=True)
     return results
 
+
 def final_eval_K_steps(energy, gfn_model):
     final_eval_data = energy.sample(final_eval_data_size).to(device) if not (args.energy in _LIST_OF_NO_SAMPLES_ENERGIES) else None
     results = eval_step_K_step_discretizer(final_eval_data, energy, gfn_model, final_eval=True)
@@ -417,7 +420,54 @@ def final_eval_K_steps(energy, gfn_model):
 
 
 def eval():
-    pass
+    name = get_name(args)
+
+    print(name)
+
+    energy = get_energy()
+    eval_data = energy.sample(eval_data_size).to(device) if not (args.energy in _LIST_OF_NO_SAMPLES_ENERGIES) else None
+
+    gfn_model = GFN(energy.data_ndim, args.s_emb_dim, args.hidden_dim, args.harmonics_dim, args.t_emb_dim,
+                    clipping=args.clipping, lgv_clip=args.lgv_clip, gfn_clip=args.gfn_clip,
+                    langevin=args.langevin, learned_variance=args.learned_variance,
+                    partial_energy=args.partial_energy, log_var_range=args.log_var_range,
+                    pb_scale_range=args.pb_scale_range,
+                    t_scale=args.t_scale, langevin_scaling_per_dimension=args.langevin_scaling_per_dimension,
+                    conditional_flow_model=args.conditional_flow_model, learn_pb=args.learn_pb,
+                    pis_architectures=args.pis_architectures, lgv_layers=args.lgv_layers,
+                    joint_layers=args.joint_layers, zero_init=args.zero_init, device=device).to(device)
+
+    model_final_path = name + 'model_final.pt'
+    model_path = name + 'model.pt'
+
+    if os.path.exists(model_final_path):
+        try:
+            gfn_model.load_state_dict(torch.load(model_final_path, weights_only=True))
+        except:
+            print("Couldn't load final model")
+    else:
+        if os.path.exists(model_path):
+            try:
+                gfn_model.load_state_dict(torch.load(model_path, weights_only=True))
+            except:
+                print("Couldn't load model")
+        else:
+            print("NO MODEL IS AVAILABLE")
+            return
+
+    config = args.__dict__
+    config["Experiment"] = "{args.energy}"
+    wandb.init(project="GFN Energy - evaluation", config=config, name=name)
+
+    print(gfn_model)
+    metrics = dict()
+
+    gfn_model.eval()
+    for i in trange(1, 201):
+        metrics.update(eval_step_K_step_discretizer(eval_data, energy, gfn_model, final_eval=False, traj_length=i))
+        if 'tb-avg' in args.mode_fwd or 'tb-avg' in args.mode_bwd:
+            del metrics[f'eval_{i}_steps/log_Z_learned']
+    wandb.log(metrics)
 
 
 if __name__ == '__main__':
