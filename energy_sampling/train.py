@@ -457,7 +457,7 @@ def eval():
 
     config = args.__dict__
     config["Experiment"] = "{args.energy}"
-    wandb.init(project="GFN Energy - evaluation", config=config, name=name)
+    wandb.init(project="GFN Energy - proper evaluation", config=config, name=name)
 
     print(gfn_model)
     metrics = dict()
