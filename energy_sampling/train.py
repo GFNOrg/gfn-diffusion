@@ -246,29 +246,29 @@ def eval_step_K_step_discretizer(eval_data, energy, gfn_model, final_eval=False,
         traj_length = args.discretizer_traj_length
     if final_eval:
         init_state = torch.zeros(final_eval_data_size, energy.data_ndim).to(device)
-        samples, metrics[f'final_eval_{traj_length}_steps/log_Z'], metrics[f'final_eval_{traj_length}_steps/log_Z_lb'], metrics[
-            f'final_eval_{traj_length}_steps/log_Z_learned'] = log_partition_function(
+        samples, metrics[f'final_eval_{traj_length}_steps/log_Z'], metrics[f'final_eval_{traj_length}_steps/log_Z_lb'], _ \
+            = log_partition_function(
             init_state, gfn_model, lambda bsz: uniform_discretizer(bsz, traj_length), energy.log_reward)
     else:
         init_state = torch.zeros(eval_data_size, energy.data_ndim).to(device)
-        samples, metrics[f'eval_{traj_length}_steps/log_Z'], metrics[f'eval_{traj_length}_steps/log_Z_lb'], metrics[
-            f'eval_{traj_length}_steps/log_Z_learned'] = log_partition_function(
+        samples, metrics[f'eval_{traj_length}_steps/log_Z'], metrics[f'eval_{traj_length}_steps/log_Z_lb'], _ \
+            = log_partition_function(
             init_state, gfn_model, lambda bsz: uniform_discretizer(bsz, traj_length), energy.log_reward)
-    if eval_data is None:
-        log_elbo = None
-        sample_based_metrics = None
-    else:
-        if final_eval:
-            metrics[f'final_eval_{args.discretizer_traj_length}_steps/mean_log_likelihood'] = 0. if args.mode_fwd == 'pis' else mean_log_likelihood(eval_data,
-                                                                                                              gfn_model,
-                                                                                                              lambda bsz: uniform_discretizer(bsz, traj_length),
-                                                                                                              energy.log_reward)
-        else:
-            metrics[f'eval_{args.discretizer_traj_length}_steps/mean_log_likelihood'] = 0. if args.mode_fwd == 'pis' else mean_log_likelihood(eval_data,
-                                                                                                        gfn_model,
-                                                                                                        lambda bsz: uniform_discretizer(bsz, traj_length),
-                                                                                                        energy.log_reward)
-        metrics.update(get_sample_metrics(samples, eval_data, final_eval, K=traj_length))
+    # if eval_data is None:
+    #     log_elbo = None
+    #     sample_based_metrics = None
+    # else:
+    #     if final_eval:
+    #         metrics[f'final_eval_{args.discretizer_traj_length}_steps/mean_log_likelihood'] = 0. if args.mode_fwd == 'pis' else mean_log_likelihood(eval_data,
+    #                                                                                                           gfn_model,
+    #                                                                                                           lambda bsz: uniform_discretizer(bsz, traj_length),
+    #                                                                                                           energy.log_reward)
+    #     else:
+    #         metrics[f'eval_{args.discretizer_traj_length}_steps/mean_log_likelihood'] = 0. if args.mode_fwd == 'pis' else mean_log_likelihood(eval_data,
+    #                                                                                                     gfn_model,
+    #                                                                                                     lambda bsz: uniform_discretizer(bsz, traj_length),
+    #                                                                                                     energy.log_reward)
+    #     metrics.update(get_sample_metrics(samples, eval_data, final_eval, K=traj_length))
     gfn_model.train()
     return metrics
 
@@ -465,8 +465,8 @@ def eval():
     gfn_model.eval()
     for i in trange(1, 201):
         metrics.update(eval_step_K_step_discretizer(eval_data, energy, gfn_model, final_eval=False, traj_length=i))
-        if 'tb-avg' in args.mode_fwd or 'tb-avg' in args.mode_bwd:
-            del metrics[f'eval_{i}_steps/log_Z_learned']
+        # if 'tb-avg' in args.mode_fwd or 'tb-avg' in args.mode_bwd:
+        #     del metrics[f'eval_{i}_steps/log_Z_learned']
     wandb.log(metrics)
 
 
