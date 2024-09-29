@@ -111,8 +111,10 @@ set_seed(args.seed)
 if 'SLURM_PROCID' in os.environ:
     args.seed += int(os.environ["SLURM_PROCID"])
 
-eval_data_size = 2000
-final_eval_data_size = 2000
+# eval_data_size = 2000
+# final_eval_data_size = 2000
+eval_data_size = 10000
+final_eval_data_size = 10000
 if args.energy == 'cancer':
     eval_data_size = 10080
     final_eval_data_size = 10080
