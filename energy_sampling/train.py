@@ -386,8 +386,8 @@ def train():
                 del metrics['eval/log_Z_learned']
 
             metrics.update(eval_step_K_step_discretizer(eval_data, energy, gfn_model, final_eval=False))
-            if 'tb-avg' in args.mode_fwd or 'tb-avg' in args.mode_bwd:
-                del metrics[f'eval_{args.discretizer_traj_length}_steps/log_Z_learned']
+            # if 'tb-avg' in args.mode_fwd or 'tb-avg' in args.mode_bwd:
+            #     del metrics[f'eval_{args.discretizer_traj_length}_steps/log_Z_learned']
 
             images = plot_step(energy, gfn_model, name)
             metrics.update(images)
@@ -403,8 +403,8 @@ def train():
 
     eval_results_K = final_eval_K_steps(energy, gfn_model)
     metrics.update(eval_results_K)
-    if 'tb-avg' in args.mode_fwd or 'tb-avg' in args.mode_bwd:
-        del metrics[f'eval_{args.discretizer_traj_length}_steps/log_Z_learned']
+    # if 'tb-avg' in args.mode_fwd or 'tb-avg' in args.mode_bwd:
+    #     del metrics[f'eval_{args.discretizer_traj_length}_steps/log_Z_learned']
 
     torch.save(gfn_model.state_dict(), f'{name}model_final.pt')
 
