@@ -1,0 +1,11 @@
+pytorch
+numpy
+pandas 
+matplotlib==3.7.0
+seaborn
+einops
+scikit-learn
+pot
+opencv-python
+tqdm
+wandb
