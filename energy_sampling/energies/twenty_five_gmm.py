@@ -23,6 +23,7 @@ class TwentyFiveGaussianMixture(BaseSet):
         self.gmm = [D.MultivariateNormal(loc=mode.to(self.device),
                                          covariance_matrix=0.3 * torch.eye(self.data_ndim, device=self.device))
                     for mode in modes]
+        self.mode_sampler = D.Categorical(torch.ones(self.nmode) / self.nmode)
 
     def gt_logz(self):
         return 0.
@@ -33,7 +34,10 @@ class TwentyFiveGaussianMixture(BaseSet):
         return -log_prob
 
     def sample(self, batch_size):
-        samples = torch.cat([mvn.sample((batch_size // self.nmode,)) for mvn in self.gmm], dim=0).to(self.device)
+        modes = self.mode_sampler.sample((batch_size,))
+        samples = torch.cat(
+            [self.gmm[mode_idx].sample(((modes == mode_idx).sum().item(),)) for mode_idx in range(self.nmode)], dim=0
+        ).to(self.device)
         return samples
 
     def viz_pdf(self, fsave="25gmm-density.png"):
