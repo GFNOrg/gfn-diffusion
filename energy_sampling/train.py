@@ -33,7 +33,7 @@ parser.add_argument('--subtb_lambda', type=int, default=2)
 parser.add_argument('--t_scale', type=float, default=5.)
 parser.add_argument('--log_var_range', type=float, default=4.)
 parser.add_argument('--energy', type=str, default='9gmm',
-                    choices=('9gmm', '25gmm', 'hard_funnel', 'easy_funnel', 'many_well', 'log_cox', 'cancer', 'credit'))
+                    choices=('9gmm', '25gmm', '40gmm', 'hard_funnel', 'easy_funnel', 'many_well', 'log_cox', 'cancer', 'credit'))
 parser.add_argument('--mode_fwd', type=str, default="tb", choices=('tb', 'tb-avg', 'db', 'subtb', "pis"))
 parser.add_argument('--mode_bwd', type=str, default="tb", choices=('tb', 'tb-avg', 'mle'))
 parser.add_argument('--both_ways', action='store_true', default=False)
@@ -144,6 +144,8 @@ def get_energy():
         energy = NineGaussianMixture(device=device)
     elif args.energy == '25gmm':
         energy = TwentyFiveGaussianMixture(device=device)
+    elif args.energy == '40gmm':
+        energy = FortyGaussianMixture(device=device)
     elif args.energy == 'hard_funnel':
         energy = HardFunnel(device=device)
     elif args.energy == 'easy_funnel':

@@ -6,3 +6,4 @@ from .many_well import ManyWell
 from .lgcp import CoxDist
 from .breast_cancer import BreastCancer
 from .german_credit import GermanCredit
+from .forty_gmm import FortyGaussianMixture
