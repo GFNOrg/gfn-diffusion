@@ -18,10 +18,10 @@ class FortyGaussianMixture(BaseSet):
         super().__init__()
 
         if dim in [2, 50, 200]:
-            loc = torch.load(f"{data_dir}/GMM40-{dim}d.pt")
+            loc = torch.load(f"{data_dir}/GMM40-{dim}d.pt").to(device)
         else:
             loc = (torch.rand((40, dim), generator=generator) - 0.5) * 2 * 40
-        scale = torch.ones_like(loc)
+        scale = torch.ones_like(loc).to(device)
         mixture_weights = torch.ones(loc.shape[0], device=loc.device)
         modes = D.Independent(D.Normal(loc, scale), 1)
         mix = D.Categorical(mixture_weights)
