@@ -143,10 +143,11 @@ class GFN(nn.Module):
             pf_mean, pflogvars = self.split_params(pfs)
 
             logf[:, i] = flow
-            if self.partial_energy:
-                ref_log_var = (self.t_scale * ts[:, max(1, i)]).log()
-                log_p_ref = -0.5 * (logtwopi + ref_log_var.unsqueeze(1) + (-ref_log_var).exp().unsqueeze(1) * (s ** 2)).sum(1)
-                logf[:, i] += (1 - ts[:, i]) * log_p_ref + ts[:, i] * log_r(s)
+            # Note: We instead use the vectorized version outside of the loop
+            # if self.partial_energy:
+            #     ref_log_var = (self.t_scale * ts[:, max(1, i)]).log()
+            #     log_p_ref = -0.5 * (logtwopi + ref_log_var.unsqueeze(1) + (-ref_log_var).exp().unsqueeze(1) * (s ** 2)).sum(1)
+            #     logf[:, i] += (1 - ts[:, i]) * log_p_ref + ts[:, i] * log_r(s)
 
             if exploration_std is None:
                 if pis:
@@ -192,6 +193,16 @@ class GFN(nn.Module):
             s = s_
             states[:, i + 1] = s
 
+        if self.partial_energy:
+            assert log_r is not None
+            ref_log_var = (self.t_scale * ts[:, 1:-1]).log().unsqueeze(2)  # (bsz, T - 1, 1)
+            log_p_ref = -0.5 * (
+                logtwopi + ref_log_var + (-ref_log_var).exp() * (states[:, 1:-1] ** 2)
+            ).sum(-1)
+            logf[:, 1:-1] += (1 - ts[:, 1:-1]) * log_p_ref + ts[:, 1:-1] * log_r(
+                states[:, 1:-1].reshape(-1, self.dim)
+            ).view(bsz, trajectory_length - 1)
+
         return states, logpf, logpb, logf
 
     def get_trajectory_bwd(self, s, discretizer, exploration_std, log_r):
@@ -231,10 +242,11 @@ class GFN(nn.Module):
             pf_mean, pflogvars = self.split_params(pfs)
 
             logf[:, trajectory_length - i - 1] = flow
-            if self.partial_energy:
-                ref_log_var = (self.t_scale * ts[:, max(1, trajectory_length - i - 1)]).log()
-                log_p_ref = -0.5 * (logtwopi + ref_log_var.unsqueeze(1) + (-ref_log_var).exp().unsqueeze(1) * (s_ ** 2)).sum(1)
-                logf[:, trajectory_length - i - 1] += (1 - ts[:, trajectory_length - i - 1]) * log_p_ref + ts[:, trajectory_length - i - 1] * log_r(s_)
+            # Note: We instead use the vectorized version outside of the loop
+            # if self.partial_energy:
+            #     ref_log_var = (self.t_scale * ts[:, max(1, trajectory_length - i - 1)]).log()
+            #     log_p_ref = -0.5 * (logtwopi + ref_log_var.unsqueeze(1) + (-ref_log_var).exp().unsqueeze(1) * (s_ ** 2)).sum(1)
+            #     logf[:, trajectory_length - i - 1] += (1 - ts[:, trajectory_length - i - 1]) * log_p_ref + ts[:, trajectory_length - i - 1] * log_r(s_)
 
             noise = ((s - s_) - dts.unsqueeze(1) * pf_mean) / (dts.sqrt().unsqueeze(1) * (pflogvars / 2).exp())
             logpf[:, trajectory_length - i - 1] = -0.5 * (noise ** 2 + logtwopi + dts.log().unsqueeze(1) + pflogvars).sum(
@@ -242,6 +254,16 @@ class GFN(nn.Module):
 
             s = s_
             states[:, trajectory_length - i - 1] = s
+
+        if self.partial_energy:
+            assert log_r is not None
+            ref_log_var = (self.t_scale * ts[:, 1:-1]).log().unsqueeze(2)  # (bsz, T - 1, 1)
+            log_p_ref = -0.5 * (
+                logtwopi + ref_log_var + (-ref_log_var).exp() * (states[:, 1:-1] ** 2)
+            ).sum(-1)
+            logf[:, 1:-1] += (1 - ts[:, 1:-1]) * log_p_ref + ts[:, 1:-1] * log_r(
+                states[:, 1:-1].reshape(-1, self.dim)
+            ).view(bsz, trajectory_length - 1)
 
         return states, logpf, logpb, logf
 
