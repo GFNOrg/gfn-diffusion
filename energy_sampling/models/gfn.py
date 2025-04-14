@@ -233,8 +233,8 @@ class GFN(nn.Module):
             logf[:, trajectory_length - i - 1] = flow
             if self.partial_energy:
                 ref_log_var = (self.t_scale * ts[:, max(1, trajectory_length - i - 1)]).log()
-                log_p_ref = -0.5 * (logtwopi + ref_log_var.unsqueeze(1) + (-ref_log_var).exp().unsqueeze(1) * (s ** 2)).sum(1)
-                logf[:, trajectory_length - i - 1] += ts[:, trajectory_length - i - 1] * log_p_ref + ts[:, i + 1] * log_r(s)
+                log_p_ref = -0.5 * (logtwopi + ref_log_var.unsqueeze(1) + (-ref_log_var).exp().unsqueeze(1) * (s_ ** 2)).sum(1)
+                logf[:, trajectory_length - i - 1] += (1 - ts[:, trajectory_length - i - 1]) * log_p_ref + ts[:, trajectory_length - i - 1] * log_r(s_)
 
             noise = ((s - s_) - dts.unsqueeze(1) * pf_mean) / (dts.sqrt().unsqueeze(1) * (pflogvars / 2).exp())
             logpf[:, trajectory_length - i - 1] = -0.5 * (noise ** 2 + logtwopi + dts.log().unsqueeze(1) + pflogvars).sum(
