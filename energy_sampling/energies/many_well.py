@@ -64,10 +64,10 @@ class ManyWell(BaseSet):
         return x1_term + x2_term
 
     def manywell_logprob(self, x):
-        assert x.ndim == 2
-        logprob = torch.stack(
-            [self.doublewell_logprob(x[:, i*2:i*2+2]) for i in range(self.n_wells)],
-        dim=1).sum(dim=1)
+        assert x.ndim == 2  # [batch_size, ndim]
+        x_reshaped = x.view(-1, self.n_wells, 2).reshape(-1, 2)  # [batch_size * n_wells, 2]
+        logprob = self.doublewell_logprob(x_reshaped)  # [batch_size * n_wells]
+        logprob = logprob.reshape(-1, self.n_wells).sum(dim=1)  # [batch_size]
         return logprob
 
     def sample_first_dimension(self, batch_size):
