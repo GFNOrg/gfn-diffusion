@@ -1,6 +1,6 @@
 # Diffusion models for amortized inference
 
-Official repository for the paper:
+Official repository for the NeurIPS 2024 paper:
 
 [Improved off-policy training of diffusion samplers](https://arxiv.org/abs/2402.05098)
 
@@ -160,8 +160,8 @@ If you find this code useful in your work, please consider citing our paper:
 ```bibtex
 @article{sendera2024improved,
     title={Improved off-policy training of diffusion samplers},
-    author={Sendera, Marcin and Kim, Minsu and Mittal, Sarthak and Lemos, Pablo and Scimeca, Luca and {Rector-Brooks}, Jarrid and Adam, Alexandre and Bengio, Yoshua and Malkin, Nikolay},
+    author={Sendera, Marcin and Kim, Minsu and Mittal, Sarthak and Lemos, Pablo and Scimeca, Luca and {Rector-Brooks}, Jarrid and Adam, Alexandre and Bengio, Yoshua and Whitammer, Esmeralda S.},
     year={2024},
-    journal={arXiv preprint arXiv:2402.05098}
+    journal={Neural Information Processing Systems (NeurIPS)}
 }
 ```
